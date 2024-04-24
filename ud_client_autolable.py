@@ -54,9 +54,9 @@ def display_labeled_image(image, label, filename=None):
         plt.imshow(mask, cmap='cool', alpha=0.5)
 
         # Display the phrase
-        phrase = phrases[i]
-        fontsize = min(max(min(x2 - x1, y2 - y1) // 10, 3), 10)
-        plt.text(x1, y1, phrase, color='white', fontsize=fontsize)
+        # phrase = phrases[i]
+        # fontsize = min(max(min(x2 - x1, y2 - y1) // 10, 3), 10)
+        # plt.text(x1, y1, phrase, color='white', fontsize=fontsize)
 
         # # Display the logits
         # logit = logits[i]
@@ -66,6 +66,7 @@ def display_labeled_image(image, label, filename=None):
     if filename:
         # save the image with high quality
         plt.savefig(filename, dpi=600)
+        plt.close(fig)
     else:
         plt.show()
 
@@ -84,12 +85,5 @@ for filename in os.listdir(image_directory):
     if filename.endswith(".jpeg") or filename.endswith(".jpg"):
         label = auto_label(image_directory + filename, text_prompt)
         save_label(label, label_directory + filename + ".json")
-
-# Display the labeled image
-for filename in os.listdir(image_directory):
-    if filename.endswith(".jpeg") or filename.endswith(".jpg"):
-        label_file = label_directory + filename + ".json"
-        with open(label_file, 'r') as f:
-            label = json.load(f)
         labeled_image_file = labeled_image_directory + filename
         display_labeled_image(Image.open(image_directory + filename), label, labeled_image_file)
