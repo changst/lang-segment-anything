@@ -34,28 +34,12 @@ def predict():
     # Call the model's predict method
     masks, boxes, phrases, logits = model.predict(image_pil, text_prompt, box_threshold=box_threshold, text_threshold=text_threshold)
 
-    # Draw the image with bounding boxes and masks
-    labeled_image = draw_image(np.array(image_pil), masks, boxes, phrases)
-
-    # Convert numpy array to PIL Image
-    image_pil = Image.fromarray(labeled_image)
-
-    # Create a BytesIO object
-    buffered = BytesIO()
-
-    # Save image data to buffer
-    image_pil.save(buffered, format="JPEG")
-
-    # Encode image data as base64
-    labeled_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
     # Convert results to JSON serializable format
     result = {
         'masks': masks.tolist(),
         'boxes': boxes.tolist(),
         'phrases': phrases,
-        'logits': logits.tolist(),
-        'labeled_image': labeled_image
+        'logits': logits.tolist()
     }
 
     return jsonify(result)

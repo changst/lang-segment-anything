@@ -7,39 +7,89 @@ from PIL import Image
 from io import BytesIO
 import base64
 import json
+import os
 
-filename = "./assets/car.jpeg"
-text_prompt = "person"
-box_threshold = 0.3
-text_threshold = 0.25
+def auto_label(filename, text_prompt, box_threshold=0.3, text_threshold=0.25):
+    with open(filename, 'rb') as f:
+        image_data = base64.b64encode(f.read()).decode('utf-8')
 
-image_pil = Image.open(filename).convert("RGB")
-with open(filename, 'rb') as f:
-    image_data = base64.b64encode(f.read()).decode('utf-8')
+    data = {
+        'image': image_data,
+        'text_prompt': text_prompt,
+        'box_threshold': box_threshold,
+        'text_threshold': text_threshold
+    }
 
-data = {
-    'image': image_data,
-    'text_prompt': text_prompt,
-    'box_threshold': box_threshold,
-    'text_threshold': text_threshold
-}
+    response = requests.post('http://192.168.10.48:8866/predict', json=data)
 
-response = requests.post('http://localhost:8866/predict', json=data)
+    # Parse response, retrieve the masks, boxes, phrases, and logits from the result
+    label = response.json()
+    return label
 
-# Parse response, retrieve the masks, boxes, phrases, and logits from the result
-result = response.json()
-masks = np.array(result['masks'])
-boxes = np.array(result['boxes'])
-logits = np.array(result['logits'])
-phrases = result['phrases']
+def save_label(label, filename):
+    with open(filename, 'w') as f:
+        json.dump(label, f)
 
-labeled_image = result['labeled_image']
-labeled_image = Image.open(BytesIO(base64.b64decode(labeled_image)))
+def display_labeled_image(image, label, filename=None):
+    boxes = np.array(label['boxes'])
+    masks = np.array(label['masks'])
+    logits = np.array(label['logits'])
+    phrases = label['phrases']
+    # Display the image with bounding boxes and masks
+    fig = plt.figure()
+    plt.imshow(image)
+    plt.title("BBoxes and Segmations")
+    plt.axis('off')
 
-# Display the image with bounding boxes and masks
-fig = plt.figure(figsize=(15, 7))
-plt.imshow(labeled_image)
-plt.title("BBoxes and Segmations")
-plt.axis('off')
-plt.tight_layout()
-plt.show()
+    # Display the bounding boxes
+    colors = cm.rainbow(np.linspace(0, 1, len(boxes)))
+    for i, box in enumerate(boxes):
+        x1, y1, x2, y2 = box
+        color = colors[i]
+        plt.plot([x1, x2, x2, x1, x1], [y1, y1, y2, y2, y1], color=color, lw=1)
+
+        # Display the mask
+        mask = masks[i]
+        mask = np.ma.masked_where(mask == 0, mask)
+        plt.imshow(mask, cmap='cool', alpha=0.5)
+
+        # Display the phrase
+        phrase = phrases[i]
+        fontsize = min(max(min(x2 - x1, y2 - y1) // 10, 3), 10)
+        plt.text(x1, y1, phrase, color='white', fontsize=fontsize)
+
+        # # Display the logits
+        # logit = logits[i]
+        # plt.text(x1, y2, f"logit: {logit:.2f}", color='white', fontsize=12, backgroundcolor='black')
+
+    plt.tight_layout()
+    if filename:
+        # save the image with high quality
+        plt.savefig(filename, dpi=600)
+    else:
+        plt.show()
+
+text_prompt = "elevator button"
+data_directory = "./dataset/"
+image_directory = data_directory + "images/"
+label_directory = data_directory + "labels/"
+labeled_image_directory = data_directory + "labeled_images/"
+if not os.path.exists(label_directory):
+    os.makedirs(label_directory)
+if not os.path.exists(labeled_image_directory):
+    os.makedirs(labeled_image_directory)
+
+# iterate all images in the directory
+for filename in os.listdir(image_directory):
+    if filename.endswith(".jpeg") or filename.endswith(".jpg"):
+        label = auto_label(image_directory + filename, text_prompt)
+        save_label(label, label_directory + filename + ".json")
+
+# Display the labeled image
+for filename in os.listdir(image_directory):
+    if filename.endswith(".jpeg") or filename.endswith(".jpg"):
+        label_file = label_directory + filename + ".json"
+        with open(label_file, 'r') as f:
+            label = json.load(f)
+        labeled_image_file = labeled_image_directory + filename
+        display_labeled_image(Image.open(image_directory + filename), label, labeled_image_file)
