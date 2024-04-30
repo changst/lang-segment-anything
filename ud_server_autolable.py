@@ -1,17 +1,10 @@
 import warnings
 import numpy as np
-import matplotlib.pyplot as plt
-import requests
 from PIL import Image
 from io import BytesIO
 from lang_sam import LangSAM
-import torch
-from torchvision.utils import draw_bounding_boxes
-from torchvision.utils import draw_segmentation_masks
-import matplotlib.cm as cm
 from flask import Flask, request, jsonify
 import base64
-import json
 
 app = Flask(__name__)
 model = LangSAM()
@@ -56,24 +49,6 @@ def predict():
     }
 
     return jsonify(result)
-
-def draw_image(image, masks, boxes, labels, alpha=0.4):
-    image = torch.from_numpy(image).permute(2, 0, 1)
-
-    # Generate a colormap with number_of_objects different colors
-    cmap = cm.get_cmap('tab10')
-    label_colors = [cmap(i, bytes=True)[:3] for i in range(len(labels))]  # Discard alpha channel
-    
-    if len(masks) > 0:
-        # Use the generated colors for segmentation masks
-        image = draw_segmentation_masks(image, masks=masks, colors=label_colors, alpha=alpha)
-    
-    if len(boxes) > 0:
-        # Use the generated colors for bounding boxes
-        image = draw_bounding_boxes(image, boxes, colors=label_colors, labels=labels, width=5)
-    
-    return image.numpy().transpose(1, 2, 0)
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8866)

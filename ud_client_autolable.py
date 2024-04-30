@@ -75,17 +75,15 @@ def display_labeled_image(image, label, filename=None):
 text_prompt = "each button"
 data_directory = "./dataset/"
 image_directory = data_directory + "images/"
-label_directory = data_directory + "labels/"
 labeled_image_directory = data_directory + "labeled_images/"
-if not os.path.exists(label_directory):
-    os.makedirs(label_directory)
 if not os.path.exists(labeled_image_directory):
     os.makedirs(labeled_image_directory)
 
-# iterate all images in the directory
+imgformat = ['jpeg', 'jpg', 'png']
 for filename in os.listdir(image_directory):
-    if filename.endswith(".jpeg") or filename.endswith(".jpg"):
-        label = auto_label(image_directory + filename, text_prompt)
-        save_label(label, label_directory + filename + ".json")
-        labeled_image_file = labeled_image_directory + filename
-        display_labeled_image(Image.open(image_directory + filename), label, labeled_image_file)
+    filename, ext = os.path.splitext(filename)
+    if ext[1:] in imgformat:
+        label = auto_label(image_directory + filename + ext, text_prompt)
+        save_label(label, image_directory + filename + ".json")
+        labeled_image_file = labeled_image_directory + filename + ext
+        display_labeled_image(Image.open(image_directory + filename + ext), label, labeled_image_file)
