@@ -34,6 +34,19 @@ def predict():
     # Call the model's predict method
     masks, boxes, phrases, logits = model.predict(image_pil, text_prompt, box_threshold=box_threshold, text_threshold=text_threshold)
 
+    # protect against empty results
+    if len(boxes) == 0:
+        result = {
+            'masks': [],
+            'boxes': [],
+            'phrases': [],
+            'logits': []
+        }
+        return jsonify(result)
+    
+    # Compresse the masks to save space
+    masks = np.packbits(masks, axis=2)
+
     # Convert results to JSON serializable format
     result = {
         'masks': masks.tolist(),

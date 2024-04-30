@@ -21,7 +21,6 @@ def auto_label(filename, text_prompt, box_threshold=0.3, text_threshold=0.25):
     }
 
     response = requests.post('http://192.168.10.48:8866/predict', json=data)
-
     # Parse response, retrieve the masks, boxes, phrases, and logits from the result
     label = response.json()
     return label
@@ -32,7 +31,10 @@ def save_label(label, filename):
 
 def display_labeled_image(image, label, filename=None):
     boxes = np.array(label['boxes'])
-    masks = np.array(label['masks'])
+    masks = np.array(label['masks'], dtype=np.uint8)
+    if masks is not None and masks.ndim == 3:
+        masks = np.unpackbits(masks, axis=2)
+
     logits = np.array(label['logits'])
     phrases = label['phrases']
     # Display the image with bounding boxes and masks
@@ -70,7 +72,7 @@ def display_labeled_image(image, label, filename=None):
     else:
         plt.show()
 
-text_prompt = "elevator button"
+text_prompt = "each button"
 data_directory = "./dataset/"
 image_directory = data_directory + "images/"
 label_directory = data_directory + "labels/"
