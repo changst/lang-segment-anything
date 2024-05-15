@@ -20,7 +20,7 @@ def auto_label(filename, text_prompt, box_threshold=0.3, text_threshold=0.25):
         'text_threshold': text_threshold
     }
 
-    response = requests.post('http://192.168.10.48:8866/predict', json=data)
+    response = requests.post('http://localhost:8866/predict', json=data)
     # Parse response, retrieve the masks, boxes, phrases, and logits from the result
     label = response.json()
     return label
@@ -72,18 +72,27 @@ def display_labeled_image(image, label, filename=None):
     else:
         plt.show()
 
-text_prompt = "each button"
-data_directory = "./dataset/"
-image_directory = data_directory + "images/"
-labeled_image_directory = data_directory + "labeled_images/"
-if not os.path.exists(labeled_image_directory):
-    os.makedirs(labeled_image_directory)
+def generate_labeled_images(image_directory, labeled_image_directory, imgformat):
+    if not os.path.exists(labeled_image_directory):
+        os.makedirs(labeled_image_directory)
+    for filename in os.listdir(image_directory):
+        filename, ext = os.path.splitext(filename)
+        json_file = image_directory + filename + ".json"
+        if ext[1:] in imgformat and os.path.exists(json_file):
+            label = json.load(open(json_file, 'r'))
+            labeled_image_file = labeled_image_directory + filename + ext
+            display_labeled_image(Image.open(image_directory + filename + ext), label, labeled_image_file)
 
-imgformat = ['jpeg', 'jpg', 'png']
-for filename in os.listdir(image_directory):
-    filename, ext = os.path.splitext(filename)
-    if ext[1:] in imgformat:
-        label = auto_label(image_directory + filename + ext, text_prompt)
-        save_label(label, image_directory + filename + ".json")
-        labeled_image_file = labeled_image_directory + filename + ext
-        display_labeled_image(Image.open(image_directory + filename + ext), label, labeled_image_file)
+if __name__ == '__main__':
+    text_prompt = "elevator button"
+    image_directory = "./dataset/images/"
+    box_threshold=0.3
+    text_threshold=0.25
+    imgformat = ['jpeg', 'jpg', 'png']
+    for filename in os.listdir(image_directory):
+        filename, ext = os.path.splitext(filename)
+        if ext[1:] in imgformat:
+            label = auto_label(image_directory + filename + ext, text_prompt, box_threshold, text_threshold)
+            save_label(label, image_directory + filename + ".json")
+    labeled_image_directory = "./dataset/labeled_images/"
+    generate_labeled_images(image_directory, labeled_image_directory, imgformat)
